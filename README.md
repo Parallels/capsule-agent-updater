@@ -1,1 +1,0 @@
-# capsule-agent-updater
