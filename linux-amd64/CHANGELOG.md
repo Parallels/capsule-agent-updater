@@ -3,6 +3,14 @@
 
 Release 0.1.3
 Release 0.1.1
+Release 0.1.4
+Release 0.1.5
+Release 0.1.2
+# Release v0.1.6
+
+
+Release 0.1.3
+Release 0.1.1
 # Changelog - Capsule Updater
 
 All notable changes to the Capsule Updater module will be documented in this file.

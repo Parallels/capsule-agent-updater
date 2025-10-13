@@ -1,1 +1,1 @@
-3459a2f666004054995d41e16307ebee10bf645bd05c11cb7b8f18021e228064  capsule-agent-updater-linux-amd64
+2431e63ce5989a0d5cae6a16500c806ae3eead7975a029097297928b466dc586  capsule-agent-updater-linux-amd64
