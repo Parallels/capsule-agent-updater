@@ -1,10 +1,10 @@
-## What's Changed in capsule-agent-updater v0.1.4-canary
+## What's Changed in capsule-agent-updater v0.1.5-canary
 
 This is a **canary** release of the capsule-agent-updater module.
 
 ### Module Information
 - **Module**: capsule-agent-updater
-- **Version**: 0.1.4-canary
+- **Version**: 0.1.5-canary
 - **Path**: cmd/capsule-agent-updater
 - **Environment**: development
 - **Release Date**: 2025-10-15

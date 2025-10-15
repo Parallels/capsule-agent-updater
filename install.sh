@@ -22,9 +22,9 @@ function usage() {
 Usage: $0 [install|update|uninstall] [options]
 
 Commands:
-  install            Install Capsule Agent (default)
-  update             Update Capsule Agent binary in-place
-  uninstall          Remove Capsule Agent service and binary
+  install            Install Capsule Agent Updater (default)
+  update             Update Capsule Agent Updater binary in-place
+  uninstall          Remove Capsule Agent Updater service and binary
 
 Options:
   --version <tag>    Use a specific release tag (e.g. v0.1.1)
@@ -149,7 +149,7 @@ function download_binary() {
     tmp_dir=$(mktemp -d)
     trap '[ -n "${tmp_dir:-}" ] && rm -rf "$tmp_dir"' RETURN
 
-    echo "📥 Downloading Capsule Agent ${release_tag}..." >&2
+    echo "📥 Downloading Capsule Agent Updater ${release_tag}..." >&2
     local download_url="https://github.com/$OWNER/$REPO/releases/download/${release_tag}/${binary_name}"
     local sig_url="${download_url}.sig"
 
@@ -202,13 +202,13 @@ EOF
 
 function stop_service_if_exists() {
     if [[ -f "$SERVICE_FILE" ]]; then
-        echo "🛑 Stopping Capsule Agent service..." >&2
+        echo "🛑 Stopping Capsule Agent Updater service..." >&2
         systemctl stop "$SERVICE_NAME" || true
     fi
 }
 
 function start_service() {
-    echo "🚀 Starting Capsule Agent service..." >&2
+    echo "🚀 Starting Capsule Agent Updater service..." >&2
     systemctl daemon-reload
     systemctl enable "$SERVICE_NAME.service"
     systemctl start "$SERVICE_NAME.service"
@@ -216,9 +216,9 @@ function start_service() {
 
 function ensure_service_running() {
     if systemctl is-active --quiet "$SERVICE_NAME"; then
-        echo "✅ Capsule Agent service is running" >&2
+        echo "✅ Capsule Agent Updater service is running" >&2
     else
-        echo "❌ Capsule Agent service failed to start" >&2
+        echo "❌ Capsule Agent Updater service failed to start" >&2
         systemctl status "$SERVICE_NAME.service" --no-pager || true
         exit 1
     fi
@@ -226,7 +226,7 @@ function ensure_service_running() {
 
 function install_capsule_agent() {
     ensure_requirements
-    echo "🔧 Installing Capsule Agent..." >&2
+    echo "🔧 Installing Capsule Agent Updater..." >&2
     local binary_name
     binary_name=$(resolve_arch)
     local release_tag
@@ -242,10 +242,10 @@ function install_capsule_agent() {
 
 function update_capsule_agent() {
     ensure_requirements
-    echo "♻️  Updating Capsule Agent..." >&2
+    echo "♻️  Updating Capsule Agent Updater..." >&2
 
     if [[ ! -x "$BINARY_PATH" ]]; then
-        echo "❌ Capsule Agent is not installed. Run install first." >&2
+        echo "❌ Capsule Agent Updater is not installed. Run install first." >&2
         exit 1
     fi
 
@@ -257,14 +257,14 @@ function update_capsule_agent() {
 
     stop_service_if_exists
     download_binary "$release_tag" "$binary_name"
-    echo "� Restarting Capsule Agent service..." >&2
+    echo "🔄 Restarting Capsule Agent Updater service..." >&2
     systemctl restart "$SERVICE_NAME.service"
     ensure_service_running
 }
 
 function uninstall_capsule_agent() {
     ensure_requirements
-    echo "🧹 Uninstalling Capsule Agent..." >&2
+    echo "🧹 Uninstalling Capsule Agent Updater..." >&2
 
     stop_service_if_exists
     systemctl disable "$SERVICE_NAME.service" >/dev/null 2>&1 || true
@@ -274,7 +274,7 @@ function uninstall_capsule_agent() {
     rm -f "$BINARY_PATH"
     rm -f "$ENV_FILE"
 
-    echo "✅ Capsule Agent removed" >&2
+    echo "✅ Capsule Agent Updater removed" >&2
 }
 
 case "$ACTION" in
