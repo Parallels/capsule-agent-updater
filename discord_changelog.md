@@ -1,25 +1,16 @@
-## What's Changed in capsule-agent-updater v0.1.6-canary
+## What's Changed in capsule-agent-updater v0.1.7-canary
 
-This is a **canary** release of the capsule-agent-updater module.
-
-### Module Information
-- **Module**: capsule-agent-updater
-- **Version**: 0.1.6-canary
-- **Path**: cmd/capsule-agent-updater
-- **Environment**: development
-- **Release Date**: 2025-10-15
+Base version (stripped): 0.1.7
+- Update codeowners
+- Enhance markdownlint configuration
+- Improve telemetry event naming
+- Fixed missing telemetry from capsule-agent-updater
+- Enhance issue templates and workflows to extract changelog content for releases #38 
 
 ### Installation
 
-Download the appropriate package for your platform from the release assets.
+Download the appropriate package for your platform from the [release assets](https://github.com/Parallels/capsule-agent-updater/releases/tag/v0.1.7-canary).
 
-### Docker Images
-This module does not include Docker images.
-
-### Features
-- Latest updates and improvements for capsule-agent-updater
-- Bug fixes and optimizations
-- Enhanced stability and performance
-
-### Source Repository
-This release was automatically synced from the [Capsule Manager monorepo](https://github.com/Parallels-Corp/capsule-manager).
+### Links
+- **Public Repository**: [github.com/Parallels/capsule-agent-updater](https://github.com/Parallels/capsule-agent-updater)
+- **Monorepo Release**: [capsule-agent-updater-v0.1.7-canary](https://github.com/Parallels-Corp/capsule-manager/releases/tag/capsule-agent-updater-v0.1.7-canary)
