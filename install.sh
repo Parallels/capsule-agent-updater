@@ -16,6 +16,15 @@ TARGET_SERVICE_VERSION_URL="http://localhost:5000/api/version"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}.service"
 BINARY_PATH="/usr/local/bin/${SERVICE_NAME}"
 ENV_FILE="/usr/local/bin/${SERVICE_NAME}.env"
+HARDWARE_ID="unknown"
+APPLICATION_ID="unknown"
+USER_ID="unknown"
+PD_LICENSE="unknown"
+PD_LICENSE_TYPE="unknown"
+PD_LICENSE_IS_TRIAL="unknown"
+PD_LICENSE_IS_VOLUME="unknown"
+PD_ID="unknown"
+ENVIRONMENT="stable"
 
 function usage() {
     cat <<EOF >&2
@@ -76,6 +85,42 @@ while [[ $# -gt 0 ]]; do
         --help|-h)
             usage
             exit 0
+            ;;
+        --user-id)
+            USER_ID="$2"
+            shift 2
+            ;;
+        --hardware-id)
+            HARDWARE_ID="$2"
+            shift 2
+            ;;
+        --application-id)
+            APPLICATION_ID="$2"
+            shift 2
+            ;;
+        --pd-license)
+            PD_LICENSE="$2"
+            shift 2
+            ;;
+        --pd-license-type)
+            PD_LICENSE_TYPE="$2"
+            shift 2
+            ;;
+        --pd-license-is-trial)
+            PD_LICENSE_IS_TRIAL="$2"
+            shift 2
+            ;;
+        --pd-license-is-volume)
+            PD_LICENSE_IS_VOLUME="$2"
+            shift 2
+            ;;
+        --pd-id)
+            PD_ID="$2"
+            shift 2
+            ;;
+        --environment)
+            ENVIRONMENT="$2"
+            shift 2
             ;;
         *)
             echo "Unknown option: $1" >&2
@@ -177,6 +222,16 @@ $USE_CANARY
 LXC_AGENT_UPDATER_CHECK_INTERVAL=1h
 LXC_AGENT_UPDATER_VERSION_URL=$TARGET_SERVICE_VERSION_URL
 LXC_AGENT_UPDATER_LINUX_SERVICE_NAME=$TARGET_SERVICE_NAME
+LXC_AGENT_APP_ENVIRONMENT=$ENVIRONMENT
+LXC_AGENT_USER_ID=$USER_ID
+LXC_AGENT_TELEMETRY_HARDWARE_ID=$HARDWARE_ID
+LXC_AGENT_TELEMETRY_APPLICATION_ID=$APPLICATION_ID
+LXC_AGENT_TELEMETRY_USER_ID=$USER_ID
+LXC_AGENT_TELEMETRY_PD_LICENSE=$PD_LICENSE
+LXC_AGENT_TELEMETRY_PD_LICENSE_TYPE=$PD_LICENSE_TYPE
+LXC_AGENT_TELEMETRY_PD_LICENSE_IS_TRIAL=$PD_LICENSE_IS_TRIAL
+LXC_AGENT_TELEMETRY_PD_LICENSE_IS_VOLUME=$PD_LICENSE_IS_VOLUME
+LXC_AGENT_TELEMETRY_PD_ID=$PD_ID
 EOF
 }
 
