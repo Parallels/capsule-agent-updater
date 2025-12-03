@@ -5,6 +5,13 @@ All notable changes to the Capsule Agent Updater module will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.10] - 2025-12-03
+
+- Removed some duplicated go routines
+- Improved stability on the monitoring
+- Fix some issues with telemetry
+- Fixed some memory leaks
+
 ## [0.1.9] - 2025-10-20
 
 - Modified release-capsule-marketplace-registry.yml to change environment descriptions and suffixes for canary and beta.
