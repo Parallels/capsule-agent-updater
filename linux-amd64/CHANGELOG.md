@@ -5,6 +5,25 @@ All notable changes to the Capsule Agent Updater module will be documented in th
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.11] - 2026-02-06
+
+- Improved the way we deal with user feedback
+- Added extra fields to the Capsules #118 
+- Added the new marketplace application #116 
+- Added a recovery for DNS issues with dnsmasq
+- Added a new wait for the app to be ready
+- Added better usage of urls when opening the page
+- Added the new links to the marketplace
+- Fixed an issue where Onboarding would failed for users that had used old capsules app
+- Fixed an issue where the marketplace would crash if two users had an empty email
+- Fixed issues with the users database constrains
+- Updated install scripts to not overwrite the existing .env file
+- Improved the design of the error dialog
+- Fixed an issue where the error messages from the backend API would generate an error
+- Enabled the debug messages in the log of the backend
+- Fixed an issue in the install script that had the wrong variable name for the marketplace
+- Fixed an issue in the search bar where it was not detecting empty strings and resetting the view
+
 ## [0.1.10] - 2025-12-03
 
 - Removed some duplicated go routines
@@ -31,15 +50,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.8] - 2025-10-17
 
-
-
 ## [0.1.7] - 2025-10-17
 
 - Update codeowners
 - Enhance markdownlint configuration
 - Improve telemetry event naming
 - Fixed missing telemetry from capsule-agent-updater
-- Enhance issue templates and workflows to extract changelog content for releases #38 
+- Enhance issue templates and workflows to extract changelog content for releases #38
 
 ## [0.10.0] - 2024-08-26
 

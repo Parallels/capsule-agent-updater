@@ -250,6 +250,9 @@ Restart=always
 RestartSec=10
 User=root
 
+StandardOutput=append:/var/log/capsule-agent-updater.log
+StandardError=append:/var/log/capsule-agent-updater.log
+
 [Install]
 WantedBy=multi-user.target
 EOF
