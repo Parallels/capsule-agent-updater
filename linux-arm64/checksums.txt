@@ -1,1 +1,1 @@
-80814060805881a7d81ce71bb63d2fe4c75f59859dfab7a20f3d40cf447eaeda  capsule-agent-updater-linux-arm64
+b98b1615746ea551871b281a34d186acfe0b61f1f98eba97a63a2c6a7145958c  capsule-agent-updater-linux-arm64

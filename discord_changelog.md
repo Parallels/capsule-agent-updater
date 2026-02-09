@@ -1,12 +1,12 @@
-## What's Changed in capsule-agent-updater v0.1.12-canary.263
+## What's Changed in capsule-agent-updater v0.1.12-canary.264
 
-Base version (stripped): 0.1.12-canary.263
-Warning: No changelog content found for version 0.1.12-canary.263
+Base version (stripped): 0.1.12-canary.264
+Warning: No changelog content found for version 0.1.12-canary.264
 
 ### Installation
 
-Download the appropriate package for your platform from the [release assets](https://github.com/Parallels/capsule-agent-updater/releases/tag/v0.1.12-canary.263).
+Download the appropriate package for your platform from the [release assets](https://github.com/Parallels/capsule-agent-updater/releases/tag/v0.1.12-canary.264).
 
 ### Links
 - **Public Repository**: [github.com/Parallels/capsule-agent-updater](https://github.com/Parallels/capsule-agent-updater)
-- **Monorepo Release**: [capsule-agent-updater-v0.1.12-canary.263](https://github.com/Parallels-Corp/capsule-manager/releases/tag/capsule-agent-updater-v0.1.12-canary.263)
+- **Monorepo Release**: [capsule-agent-updater-v0.1.12-canary.264](https://github.com/Parallels-Corp/capsule-manager/releases/tag/capsule-agent-updater-v0.1.12-canary.264)
