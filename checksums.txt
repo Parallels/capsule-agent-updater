@@ -1,4 +1,4 @@
-abef20d112914e7f47314ccca9347c3fb6ba819fff3e2c2ba3b2edb208094ba1  capsule-agent-updater-linux-amd64
-576336e9bb9c743df1ea2c072468f6037cbbc1128fbd220bd15ff50f10c307da  capsule-agent-updater-linux-arm64
-c04ee662e46c2abc809f31d3015e7eabe083d939844e1645f968b0c1438e76b7  capsule-agent-updater_0.1.12-canary.268_linux-amd64.tar.gz
-0829c741fd5d3f2686e6ce5bd82d68766d2434c511d34745d1d21456557b857f  capsule-agent-updater_0.1.12-canary.268_linux-arm64.tar.gz
+c604e6eb698c6cb262d3021401cf4160299e29c562b53802b2c75293b088900f  capsule-agent-updater-linux-amd64
+8eebc16fd5fd7197f44b8eac2b02195d182e715a5f4a2475ec318f4c36630059  capsule-agent-updater-linux-arm64
+32b4ac39856d972ee362ac0d51c81d3d98f33049a06458c25445f6bac52e73e7  capsule-agent-updater_0.1.12_linux-amd64.tar.gz
+35686a951436c9c1253017c7cdf12a34bcca4508563a6d4e230921df938f78a5  capsule-agent-updater_0.1.12_linux-arm64.tar.gz
