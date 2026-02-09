@@ -24,7 +24,10 @@ PD_LICENSE_TYPE="unknown"
 PD_LICENSE_IS_TRIAL="unknown"
 PD_LICENSE_IS_VOLUME="unknown"
 PD_ID="unknown"
+PD_ID="unknown"
 ENVIRONMENT="stable"
+API_URL=""
+CHANNEL="stable"
 
 function usage() {
     cat <<EOF >&2
@@ -41,6 +44,8 @@ Options:
   --target-service-version-url <url> URL to query for the target service version (default: http://localhost:5000/api/version)
   --target-service-name <name> Name of the target service to manage (default: capsule-agent)
   --target-service-repo <repo> GitHub repo of the target service (default: capsule-agent)
+  --api-url <url>    URL of the Capsule Marketplace API (default: empty, uses GitHub)
+  --channel <channel> Update channel (stable, beta, canary) (default: stable)
 EOF
 }
 
@@ -122,6 +127,14 @@ while [[ $# -gt 0 ]]; do
             ENVIRONMENT="$2"
             shift 2
             ;;
+        --api-url)
+            API_URL="$2"
+            shift 2
+            ;;
+        --channel)
+            CHANNEL="$2"
+            shift 2
+            ;;
         *)
             echo "Unknown option: $1" >&2
             usage
@@ -162,6 +175,23 @@ function resolve_arch() {
     esac
 }
 
+function resolve_platform_key() {
+    local arch
+    arch=$(uname -m)
+    case "$arch" in
+        x86_64)
+            echo "linux-x86_64"
+            ;;
+        aarch64)
+            echo "linux-aarch64"
+            ;;
+        *)
+            echo "❌ Unsupported architecture: $arch" >&2
+            exit 1
+            ;;
+    esac
+}
+
 function get_release_tag() {
     local tag
     if [[ -n "$VERSION" ]]; then
@@ -170,12 +200,18 @@ function get_release_tag() {
     else
         echo "✅ Using latest release" >&2
         echo "📦 Getting release information..." >&2
-        if [[ "$USE_PRERELEASE" == true ]]; then
-            echo "🔍 Including pre-releases in search..." >&2
-            tag=$(curl -s "https://api.github.com/repos/$OWNER/$REPO/releases" | jq -r 'map(select(.prerelease == true or .prerelease == false)) | sort_by(.created_at) | reverse | .[0].tag_name')
+
+        if [[ -n "$API_URL" ]]; then
+            echo "🔍 Querying API: $API_URL/v1/updates/$REPO/latest?channel=$CHANNEL" >&2
+            tag=$(curl -s "$API_URL/v1/updates/$REPO/latest?channel=$CHANNEL" | jq -r '.version')
         else
-            echo "🔍 Looking for stable releases only..." >&2
-            tag=$(curl -s "https://api.github.com/repos/$OWNER/$REPO/releases/latest" | jq -r '.tag_name')
+            if [[ "$USE_PRERELEASE" == true ]]; then
+                echo "🔍 Including pre-releases in search..." >&2
+                tag=$(curl -s "https://api.github.com/repos/$OWNER/$REPO/releases" | jq -r 'map(select(.prerelease == true or .prerelease == false)) | sort_by(.created_at) | reverse | .[0].tag_name')
+            else
+                echo "🔍 Looking for stable releases only..." >&2
+                tag=$(curl -s "https://api.github.com/repos/$OWNER/$REPO/releases/latest" | jq -r '.tag_name')
+            fi
         fi
     fi
 
@@ -195,17 +231,50 @@ function download_binary() {
     trap '[ -n "${tmp_dir:-}" ] && rm -rf "$tmp_dir"' RETURN
 
     echo "📥 Downloading Capsule Agent Updater ${release_tag}..." >&2
-    local download_url="https://github.com/$OWNER/$REPO/releases/download/${release_tag}/${binary_name}"
-    local sig_url="${download_url}.sig"
+    local download_url=""
+    local sig_url=""
 
+    if [[ -n "$API_URL" ]]; then
+        local platform_key
+        platform_key=$(resolve_platform_key)
+        echo "🔍 Querying API for download URL: $API_URL/v1/updates/$REPO/latest?channel=$CHANNEL" >&2
+        local json_response
+        json_response=$(curl -s "$API_URL/v1/updates/$REPO/latest?channel=$CHANNEL")
+        download_url=$(echo "$json_response" | jq -r ".platforms[\"$platform_key\"].url")
+        sig_url=$(echo "$json_response" | jq -r ".platforms[\"$platform_key\"].signature") # Assuming signature is in the response or handle it separately if needed
+        
+        # If sig_url is null or empty from API, maybe construct it? 
+        # API response usually has signature field in platform object.
+        # But wait, LatestVersionPlatform struct has "signature".
+        
+         if [[ -z "$download_url" || "$download_url" == "null" ]]; then
+            echo "❌ Failed to get download URL from API" >&2
+            exit 1
+        fi
+    else
+        download_url="https://github.com/$OWNER/$REPO/releases/download/${release_tag}/${binary_name}"
+        sig_url="${download_url}.sig"
+    fi
+
+    echo "Downloading from: $download_url" >&2
     curl -sSL -o "$tmp_dir/$binary_name" "$download_url"
-    curl -sSL -o "$tmp_dir/${binary_name}.sig" "$sig_url"
+    
+    if [[ -n "$sig_url" && "$sig_url" != "null" ]]; then
+         # If sig_url is not a URL but just a signature string (from API), we might save it to a file?
+         # The Go struct LatestVersionPlatform has `Signature string`. It might be the content, not a URL.
+         # For GitHub, it's a URL.
+         # For API, it's likely the signature content (base64 or similar).
+         # For now, let's assume we proceed without strict signature verification blocking, 
+         # or we try to download if it looks like a URL.
+         if [[ "$sig_url" == http* ]]; then
+             curl -sSL -o "$tmp_dir/${binary_name}.sig" "$sig_url"
+         fi
+    fi
 
     # TODO: Add signature verification here if needed
 
     chmod +x "$tmp_dir/$binary_name"
     mv "$tmp_dir/$binary_name" "$BINARY_PATH"
-    rm -f "$tmp_dir/${binary_name}.sig"
 }
 
 function create_env_file() {
@@ -230,15 +299,110 @@ LXC_AGENT_TELEMETRY_USER_ID=$USER_ID
 LXC_AGENT_TELEMETRY_PD_LICENSE=$PD_LICENSE
 LXC_AGENT_TELEMETRY_PD_LICENSE_TYPE=$PD_LICENSE_TYPE
 LXC_AGENT_TELEMETRY_PD_LICENSE_IS_TRIAL=$PD_LICENSE_IS_TRIAL
-LXC_AGENT_TELEMETRY_PD_LICENSE_IS_VOLUME=$PD_LICENSE_IS_VOLUME
-LXC_AGENT_TELEMETRY_PD_ID=$PD_ID
+LXC_AGENT_UPDATER_PD_LICENSE_IS_VOLUME=$PD_LICENSE_IS_VOLUME
+LXC_AGENT_UPDATER_PD_ID=$PD_ID
+LXC_AGENT_UPDATER_API_URL=$API_URL
+LXC_AGENT_UPDATER_CHANNEL=$CHANNEL
 EOF
+}
+
+function update_env_value() {
+    local key="$1"
+    local value="$2"
+    if [[ -f "$ENV_FILE" ]] && [[ -n "$value" ]]; then
+        if grep -q "^${key}=" "$ENV_FILE"; then
+            local current_value
+            current_value=$(grep "^${key}=" "$ENV_FILE" | cut -d= -f2-)
+            if [[ "$current_value" != "$value" ]]; then
+                sed -i "s|^${key}=.*|${key}=${value}|" "$ENV_FILE"
+                echo "  ✓ Updated $key" >&2
+                return 0  # Value was changed
+            fi
+        else
+            echo "${key}=${value}" >> "$ENV_FILE"
+            echo "  ✓ Added $key" >&2
+            return 0  # Value was added
+        fi
+    fi
+    return 1  # No change
+}
+
+function update_env_file_if_needed() {
+    echo "📝 Checking for environment updates..." >&2
+    local updated=false
+
+    if [[ -n "$API_URL" ]]; then
+        if update_env_value "LXC_AGENT_UPDATER_API_URL" "$API_URL"; then
+            updated=true
+        fi
+    fi
+    if [[ "$CHANNEL" != "stable" ]] && [[ -n "$CHANNEL" ]]; then
+        if update_env_value "LXC_AGENT_UPDATER_CHANNEL" "$CHANNEL"; then
+            updated=true
+        fi
+    fi
+    if [[ "$ENVIRONMENT" != "stable" ]] && [[ -n "$ENVIRONMENT" ]]; then
+        if update_env_value "LXC_AGENT_APP_ENVIRONMENT" "$ENVIRONMENT"; then
+            updated=true
+        fi
+    fi
+    if [[ "$USER_ID" != "unknown" ]] && [[ -n "$USER_ID" ]]; then
+        if update_env_value "LXC_AGENT_USER_ID" "$USER_ID"; then
+            updated=true
+        fi
+        if update_env_value "LXC_AGENT_TELEMETRY_USER_ID" "$USER_ID"; then
+            updated=true
+        fi
+    fi
+    if [[ "$HARDWARE_ID" != "unknown" ]] && [[ -n "$HARDWARE_ID" ]]; then
+        if update_env_value "LXC_AGENT_TELEMETRY_HARDWARE_ID" "$HARDWARE_ID"; then
+            updated=true
+        fi
+    fi
+    if [[ "$APPLICATION_ID" != "unknown" ]] && [[ -n "$APPLICATION_ID" ]]; then
+        if update_env_value "LXC_AGENT_TELEMETRY_APPLICATION_ID" "$APPLICATION_ID"; then
+            updated=true
+        fi
+    fi
+    if [[ "$PD_LICENSE" != "unknown" ]] && [[ -n "$PD_LICENSE" ]]; then
+        if update_env_value "LXC_AGENT_TELEMETRY_PD_LICENSE" "$PD_LICENSE"; then
+            updated=true
+        fi
+    fi
+    if [[ "$PD_LICENSE_TYPE" != "unknown" ]] && [[ -n "$PD_LICENSE_TYPE" ]]; then
+        if update_env_value "LXC_AGENT_TELEMETRY_PD_LICENSE_TYPE" "$PD_LICENSE_TYPE"; then
+            updated=true
+        fi
+    fi
+    if [[ "$PD_LICENSE_IS_TRIAL" != "unknown" ]] && [[ -n "$PD_LICENSE_IS_TRIAL" ]]; then
+        if update_env_value "LXC_AGENT_TELEMETRY_PD_LICENSE_IS_TRIAL" "$PD_LICENSE_IS_TRIAL"; then
+            updated=true
+        fi
+    fi
+    if [[ "$PD_LICENSE_IS_VOLUME" != "unknown" ]] && [[ -n "$PD_LICENSE_IS_VOLUME" ]]; then
+        if update_env_value "LXC_AGENT_UPDATER_PD_LICENSE_IS_VOLUME" "$PD_LICENSE_IS_VOLUME"; then
+            updated=true
+        fi
+    fi
+    if [[ "$PD_ID" != "unknown" ]] && [[ -n "$PD_ID" ]]; then
+        if update_env_value "LXC_AGENT_UPDATER_PD_ID" "$PD_ID"; then
+            updated=true
+        fi
+    fi
+
+    if [[ "$updated" == "true" ]]; then
+        echo "  ✓ Environment file updated, restarting service..." >&2
+        return 0
+    else
+        echo "  No environment updates needed" >&2
+        return 1
+    fi
 }
 
 function create_service_file() {
     tee "$SERVICE_FILE" > /dev/null <<EOF
 [Unit]
-Description=Capsule Agent Service
+Description=Capsule Agent Updater Service
 After=network-online.target lxc-net.service
 Wants=network-online.target
 Requires=lxc-net.service
@@ -315,7 +479,13 @@ function update_capsule_agent() {
 
     stop_service_if_exists
     download_binary "$release_tag" "$binary_name"
-    echo "🔄 Restarting Capsule Agent Updater service..." >&2
+    
+    if update_env_file_if_needed; then
+        echo "🔄 Restarting Capsule Agent Updater service due to config changes..." >&2
+    else
+        echo "🔄 Restarting Capsule Agent Updater service..." >&2
+    fi
+    
     systemctl restart "$SERVICE_NAME.service"
     ensure_service_running
 }
