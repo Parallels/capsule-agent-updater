@@ -202,8 +202,8 @@ function get_release_tag() {
         echo "📦 Getting release information..." >&2
 
         if [[ -n "$API_URL" ]]; then
-            echo "🔍 Querying API: $API_URL/v1/updates/$REPO/latest?channel=$CHANNEL" >&2
-            tag=$(curl -s "$API_URL/v1/updates/$REPO/latest?channel=$CHANNEL" | jq -r '.version')
+            echo "🔍 Querying API: $API_URL/api/v1/updates/$REPO/latest?channel=$CHANNEL" >&2
+            tag=$(curl -s "$API_URL/api/v1/updates/$REPO/latest?channel=$CHANNEL" | jq -r '.version')
         else
             if [[ "$USE_PRERELEASE" == true ]]; then
                 echo "🔍 Including pre-releases in search..." >&2
@@ -237,9 +237,9 @@ function download_binary() {
     if [[ -n "$API_URL" ]]; then
         local platform_key
         platform_key=$(resolve_platform_key)
-        echo "🔍 Querying API for download URL: $API_URL/v1/updates/$REPO/latest?channel=$CHANNEL" >&2
+        echo "🔍 Querying API for download URL: $API_URL/api/v1/updates/$REPO/latest?channel=$CHANNEL" >&2
         local json_response
-        json_response=$(curl -s "$API_URL/v1/updates/$REPO/latest?channel=$CHANNEL")
+        json_response=$(curl -s "$API_URL/api/v1/updates/$REPO/latest?channel=$CHANNEL")
         download_url=$(echo "$json_response" | jq -r ".platforms[\"$platform_key\"].url")
         sig_url=$(echo "$json_response" | jq -r ".platforms[\"$platform_key\"].signature") # Assuming signature is in the response or handle it separately if needed
         
