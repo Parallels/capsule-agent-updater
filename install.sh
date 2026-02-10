@@ -159,38 +159,40 @@ function ensure_requirements() {
     fi
 }
 
-function resolve_arch() {
+function resolve_binary_name() {
     local arch
     arch=$(uname -m)
-    case "$arch" in
-        x86_64)
-            echo "capsule-agent-updater-linux-amd64"
-            ;;
-        aarch64)
-            echo "capsule-agent-updater-linux-arm64"
-            ;;
-        *)
-            echo "❌ Unsupported architecture: $arch" >&2
-            exit 1
-            ;;
-    esac
-}
+    local os
+    os=$(uname -s)
+    local binary_suffix=""
 
-function resolve_platform_key() {
-    local arch
-    arch=$(uname -m)
+    case "$os" in
+        Linux)
+            binary_suffix="linux"
+            ;;
+        Darwin)
+            binary_suffix="darwin"
+            ;;
+        *)
+            echo "❌ Unsupported OS: $os" >&2
+            exit 1
+            ;;
+    esac
+
     case "$arch" in
         x86_64)
-            echo "linux-x86_64"
+            binary_suffix="${binary_suffix}-amd64"
             ;;
-        aarch64)
-            echo "linux-aarch64"
+        aarch64|arm64)
+            binary_suffix="${binary_suffix}-arm64"
             ;;
         *)
             echo "❌ Unsupported architecture: $arch" >&2
             exit 1
             ;;
     esac
+
+    echo "${SERVICE_NAME}-${binary_suffix}"
 }
 
 function get_release_tag() {
@@ -202,17 +204,12 @@ function get_release_tag() {
         echo "✅ Using latest release" >&2
         echo "📦 Getting release information..." >&2
 
-        if [[ -n "$API_URL" ]]; then
-            echo "🔍 Querying API: $API_URL/api/v1/updates/$REPO/latest?channel=$CHANNEL" >&2
-            tag=$(curl -s "$API_URL/api/v1/updates/$REPO/latest?channel=$CHANNEL" | jq -r '.version')
+        if [[ "$USE_PRERELEASE" == true ]]; then
+            echo "🔍 Including pre-releases in search..." >&2
+            tag=$(curl -s "https://api.github.com/repos/$OWNER/$REPO/releases" | jq -r 'map(select(.prerelease == true or .prerelease == false)) | sort_by(.created_at) | reverse | .[0].tag_name')
         else
-            if [[ "$USE_PRERELEASE" == true ]]; then
-                echo "🔍 Including pre-releases in search..." >&2
-                tag=$(curl -s "https://api.github.com/repos/$OWNER/$REPO/releases" | jq -r 'map(select(.prerelease == true or .prerelease == false)) | sort_by(.created_at) | reverse | .[0].tag_name')
-            else
-                echo "🔍 Looking for stable releases only..." >&2
-                tag=$(curl -s "https://api.github.com/repos/$OWNER/$REPO/releases/latest" | jq -r '.tag_name')
-            fi
+            echo "🔍 Looking for stable releases only..." >&2
+            tag=$(curl -s "https://api.github.com/repos/$OWNER/$REPO/releases/latest" | jq -r '.tag_name')
         fi
     fi
 
@@ -232,26 +229,8 @@ function download_binary() {
     trap '[ -n "${tmp_dir:-}" ] && rm -rf "$tmp_dir"' RETURN
 
     echo "📥 Downloading Capsule Agent Updater ${release_tag}..." >&2
-    local download_url=""
-    local sig_url=""
-
-    if [[ -n "$API_URL" ]]; then
-        local platform_key
-        platform_key=$(resolve_platform_key)
-        echo "🔍 Querying API for download URL: $API_URL/api/v1/updates/$REPO/latest?channel=$CHANNEL" >&2
-        local json_response
-        json_response=$(curl -s "$API_URL/api/v1/updates/$REPO/latest?channel=$CHANNEL")
-        download_url=$(echo "$json_response" | jq -r ".platforms[\"$platform_key\"].url")
-        sig_url=$(echo "$json_response" | jq -r ".platforms[\"$platform_key\"].signature")
-        
-         if [[ -z "$download_url" || "$download_url" == "null" ]]; then
-            echo "❌ Failed to get download URL from API" >&2
-            exit 1
-        fi
-    else
-        download_url="https://github.com/$OWNER/$REPO/releases/download/${release_tag}/${binary_name}"
-        sig_url="${download_url}.sig"
-    fi
+    local download_url="https://github.com/$OWNER/$REPO/releases/download/${release_tag}/${binary_name}"
+    local sig_url="${download_url}.sig"
 
     echo "Downloading from: $download_url" >&2
     
@@ -493,7 +472,7 @@ function install_capsule_agent() {
     ensure_requirements
     echo "🔧 Installing Capsule Agent Updater..." >&2
     local binary_name
-    binary_name=$(resolve_arch)
+    binary_name=$(resolve_binary_name)
     local release_tag
     release_tag=$(get_release_tag)
     echo "📌 Selected release: ${release_tag}"
@@ -515,7 +494,7 @@ function update_capsule_agent() {
     fi
 
     local binary_name
-    binary_name=$(resolve_arch)
+    binary_name=$(resolve_binary_name)
     local release_tag
     release_tag=$(get_release_tag)
     echo "📌 Selected release: ${release_tag}" >&2
@@ -558,7 +537,7 @@ function self_update_capsule_agent() {
     fi
 
     local binary_name
-    binary_name=$(resolve_arch)
+    binary_name=$(resolve_binary_name)
     local release_tag
     release_tag=$(get_release_tag)
     echo "📌 Selected release: ${release_tag}" >&2
