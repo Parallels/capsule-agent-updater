@@ -242,11 +242,7 @@ function download_binary() {
         local json_response
         json_response=$(curl -s "$API_URL/api/v1/updates/$REPO/latest?channel=$CHANNEL")
         download_url=$(echo "$json_response" | jq -r ".platforms[\"$platform_key\"].url")
-        sig_url=$(echo "$json_response" | jq -r ".platforms[\"$platform_key\"].signature") # Assuming signature is in the response or handle it separately if needed
-        
-        # If sig_url is null or empty from API, maybe construct it? 
-        # API response usually has signature field in platform object.
-        # But wait, LatestVersionPlatform struct has "signature".
+        sig_url=$(echo "$json_response" | jq -r ".platforms[\"$platform_key\"].signature")
         
          if [[ -z "$download_url" || "$download_url" == "null" ]]; then
             echo "❌ Failed to get download URL from API" >&2
@@ -258,15 +254,61 @@ function download_binary() {
     fi
 
     echo "Downloading from: $download_url" >&2
-    curl -sSL -o "$tmp_dir/$binary_name" "$download_url"
+    
+    local filename
+    filename=$(basename "$download_url")
+    local extracted_binary=""
+
+    if [[ "$filename" == *.tar.gz || "$filename" == *.tgz ]]; then
+        echo "📦 Detected tar.gz archive, extracting..." >&2
+        curl -sSL -o "$tmp_dir/$filename" "$download_url"
+        tar -xzf "$tmp_dir/$filename" -C "$tmp_dir"
+    elif [[ "$filename" == *.zip ]]; then
+        echo "📦 Detected zip archive, extracting..." >&2
+        curl -sSL -o "$tmp_dir/$filename" "$download_url"
+        unzip -q -o "$tmp_dir/$filename" -d "$tmp_dir"
+    else
+        # Direct binary download
+        curl -sSL -o "$tmp_dir/$binary_name" "$download_url"
+        extracted_binary="$tmp_dir/$binary_name"
+    fi
+
+    # If we extracted an archive, we need to find the binary
+    if [[ -z "$extracted_binary" ]]; then
+        # 1. Look for exact match of SERVICE_NAME (capsule-agent-updater)
+        if [[ -f "$tmp_dir/$SERVICE_NAME" ]]; then
+            extracted_binary="$tmp_dir/$SERVICE_NAME"
+        # 2. Look for exact match of requested binary name (capsule-agent-updater-linux-amd64)
+        elif [[ -f "$tmp_dir/$binary_name" ]]; then
+            extracted_binary="$tmp_dir/$binary_name"
+        else
+            # 3. Look for file matching SERVICE_NAME* (e.g. capsule-agent-updater-linux-arm64)
+            local regex_match
+            regex_match=$(find "$tmp_dir" -maxdepth 1 -type f -name "${SERVICE_NAME}*" | head -n 1)
+
+            if [[ -n "$regex_match" ]]; then
+                extracted_binary="$regex_match"
+            elif [[ -f "$tmp_dir/pd-auto-updater" ]]; then 
+                 # 4. Fallback for legacy name
+                 extracted_binary="$tmp_dir/pd-auto-updater"
+            else
+                # 5. Last resort: Find the first executable file that is not the archive itself
+                extracted_binary=$(find "$tmp_dir" -maxdepth 1 -type f -perm +111 -not -name "*.tar.gz" -not -name "*.tgz" -not -name "*.zip" | head -n 1)
+            fi
+        fi
+        
+        if [[ -z "$extracted_binary" || ! -f "$extracted_binary" ]]; then
+            echo "❌ Failed to find binary in archive" >&2
+            ls -la "$tmp_dir" >&2
+            exit 1
+        fi
+
+        echo "✅ Found binary: $extracted_binary" >&2
+        # Move it to the expected binary name location so the rest of the script continues normally
+        mv "$extracted_binary" "$tmp_dir/$binary_name"
+    fi
     
     if [[ -n "$sig_url" && "$sig_url" != "null" ]]; then
-         # If sig_url is not a URL but just a signature string (from API), we might save it to a file?
-         # The Go struct LatestVersionPlatform has `Signature string`. It might be the content, not a URL.
-         # For GitHub, it's a URL.
-         # For API, it's likely the signature content (base64 or similar).
-         # For now, let's assume we proceed without strict signature verification blocking, 
-         # or we try to download if it looks like a URL.
          if [[ "$sig_url" == http* ]]; then
              curl -sSL -o "$tmp_dir/${binary_name}.sig" "$sig_url"
          fi
